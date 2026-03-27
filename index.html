@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>IPL Auction 2026</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{min-height:100vh;background:#070714;background-image:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(244,161,20,.18) 0%,transparent 70%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(26,120,194,.1) 0%,transparent 60%);font-family:'Segoe UI',system-ui,sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem}
+    .header{text-align:center;margin-bottom:2.4rem}
+    .ipl-badge{display:inline-block;background:linear-gradient(135deg,#f4a114,#e65c00);color:#fff;font-size:.72rem;font-weight:800;letter-spacing:4px;padding:.32rem 1.1rem;border-radius:20px;margin-bottom:.85rem;text-transform:uppercase}
+    .header h1{font-size:clamp(2rem,7vw,3.8rem);font-weight:900;background:linear-gradient(135deg,#f4a114 0%,#ffdd57 45%,#f4a114 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.08;margin-bottom:.5rem;letter-spacing:-1px}
+    .header .year{font-size:clamp(1rem,3vw,1.4rem);font-weight:900;color:#f4a114;letter-spacing:6px;opacity:.8}
+    .header p{color:#666;font-size:.88rem;margin-top:.5rem}
+    .card{width:100%;max-width:420px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:2rem;backdrop-filter:blur(16px)}
+    .card h2{font-size:1.2rem;font-weight:700;margin-bottom:1.4rem;color:#f4a114}
+    .btn{width:100%;padding:.95rem 1.4rem;border:none;border-radius:11px;font-size:.97rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.55rem;margin-bottom:.7rem}
+    .btn:last-child{margin-bottom:0}.btn:hover{transform:translateY(-2px)}
+    .btn-admin{background:linear-gradient(135deg,#f4a114,#e65c00);color:#fff;box-shadow:0 4px 20px rgba(244,161,20,.25)}
+    .btn-admin:hover{box-shadow:0 8px 28px rgba(244,161,20,.4)}
+    .btn-team{background:linear-gradient(135deg,#1a78c2,#0a4480);color:#fff;box-shadow:0 4px 20px rgba(26,120,194,.2)}
+    .btn-team:hover{box-shadow:0 8px 28px rgba(26,120,194,.35)}
+    .btn-back{background:rgba(255,255,255,.06);color:#777;font-size:.88rem;font-weight:600;margin-top:.9rem;border:1px solid rgba(255,255,255,.1)}
+    .btn-back:hover{background:rgba(255,255,255,.1);color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+    .field{margin-bottom:.9rem}
+    .field label{display:block;font-size:.78rem;font-weight:600;color:#888;margin-bottom:.38rem}
+    .field input,.field select{width:100%;padding:.8rem 1rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:9px;color:#fff;font-size:.94rem;outline:none;transition:border-color .2s}
+    .field input:focus,.field select:focus{border-color:#f4a114;background:rgba(255,255,255,.1)}
+    .field select option{background:#1a1a2e;color:#fff}
+    .err{color:#ff6b6b;font-size:.82rem;margin-top:.45rem;min-height:1em;font-weight:500}
+    .modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;align-items:center;justify-content:center;padding:1rem}
+    .modal-ov.open{display:flex}
+    .modal{background:#0d0d2a;border:1px solid rgba(244,161,20,.35);border-radius:18px;padding:2rem;max-width:380px;width:100%;text-align:center}
+    .modal .mi{font-size:2.8rem;margin-bottom:.8rem}
+    .modal h3{font-size:1.15rem;font-weight:800;color:#f4a114;margin-bottom:.6rem}
+    .modal p{color:#888;font-size:.88rem;line-height:1.65;margin-bottom:1.3rem}
+    .team-highlight{color:#fff;font-weight:700;background:rgba(244,161,20,.12);padding:.2rem .6rem;border-radius:6px}
+    .modal-close{background:linear-gradient(135deg,#f4a114,#e65c00);border:none;color:#fff;padding:.75rem 1.8rem;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer}
+    #sectionMain{display:block}#sectionAdmin{display:none}#sectionTeam{display:none}
+    .footer{margin-top:1.8rem;color:#333;font-size:.75rem;text-align:center}
+    .loading-hint{color:#555;font-size:.78rem;text-align:center;margin-top:.5rem}
+    /* player count badge */
+    .count-pills{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;margin-top:.8rem}
+    .cpill{font-size:.68rem;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:.2rem .65rem;color:#888}
+  </style>
+</head>
+<body>
+
+<div class="modal-ov" id="alreadyModal">
+  <div class="modal">
+    <div class="mi">⚠️</div>
+    <h3>Team Already in Auction!</h3>
+    <p id="alreadyMsg">This team is already logged in.</p>
+    <button class="modal-close" onclick="document.getElementById('alreadyModal').classList.remove('open')">Got it, go back</button>
+  </div>
+</div>
+
+<div class="header">
+  <div class="ipl-badge">College Edition</div>
+  <h1>🏏 IPL AUCTION</h1>
+  <div class="year">2026</div>
+  <p>Live Auction · 201 Players · 15 Teams · 100Cr Each</p>
+  <div class="count-pills">
+    <span class="cpill">🏏 43 Batsmen</span>
+    <span class="cpill">🧤 25 WK</span>
+    <span class="cpill">🎳 55 Bowlers</span>
+    <span class="cpill">⚡ 36 All-Rounders</span>
+    <span class="cpill">⭐ 32 Uncapped</span>
+    <span class="cpill">👑 10 Legends</span>
+  </div>
+</div>
+
+<div class="card" id="sectionMain">
+  <h2>Select Your Role</h2>
+  <button class="btn btn-admin" onclick="show('admin')">👑 &nbsp;Admin — Auction Host</button>
+  <button class="btn btn-team"  onclick="show('team')">🏟️ &nbsp;Team — Place Bids</button>
+</div>
+
+<div class="card" id="sectionAdmin">
+  <h2>👑 Admin Login</h2>
+  <div class="field">
+    <label>Admin Password</label>
+    <input id="adminPass" type="password" placeholder="Enter password…" onkeyup="if(event.key==='Enter')adminLogin()"/>
+  </div>
+  <p class="err" id="adminErr"></p>
+  <button class="btn btn-admin" onclick="adminLogin()">Login as Admin</button>
+  <button class="btn btn-back" onclick="show('main')">← Back</button>
+</div>
+
+<div class="card" id="sectionTeam">
+  <h2>🏟️ Team Login</h2>
+  <div class="field">
+    <label>Select Your Team</label>
+    <select id="teamSelect">
+      <option value="">— Choose your team —</option>
+      <option value="CSK">Chennai Super Kings</option>
+      <option value="DC">Delhi Capitals</option>
+      <option value="GT">Gujarat Titans</option>
+      <option value="KKR">Kolkata Knight Riders</option>
+      <option value="LSG">Lucknow Super Giants</option>
+      <option value="MI">Mumbai Indians</option>
+      <option value="PBKS">Punjab Kings</option>
+      <option value="RR">Rajasthan Royals</option>
+      <option value="RCB">Royal Challengers Bengaluru</option>
+      <option value="SRH">Sunrisers Hyderabad</option>
+      <option value="DECCAN">Deccan Chargers</option>
+      <option value="KOCHI">Kochi Tuskers Kerala</option>
+      <option value="PUNE">Pune Warriors India</option>
+      <option value="RPS">Rising Pune Supergiant</option>
+      <option value="GL">Gujarat Lions</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Team Password</label>
+    <input id="teamPass" type="password" placeholder="Enter password…" onkeyup="if(event.key==='Enter')teamLogin()"/>
+  </div>
+  <p class="err" id="teamErr"></p>
+  <button class="btn btn-team" id="loginBtn" onclick="teamLogin()">Join Auction 2026</button>
+  <p class="loading-hint" id="loadingHint" style="display:none">Checking session…</p>
+  <button class="btn btn-back" onclick="show('main')">← Back</button>
+</div>
+
+<div class="footer">IPL Auction 2026 · Powered by Firebase · Hosted on Vercel</div>
+
+<script src="js/players.js"></script>
+<script>
+  // ── PASTE FIREBASE CONFIG HERE ──
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAS5DTvxsDDdRwdHGUy_7XyC4lJ3yEpaZw",
+    authDomain:        "ipl-auction-azura.firebaseapp.com",
+    databaseURL:       "https://ipl-auction-azura-default-rtdb.firebaseio.com/",
+    projectId:         "ipl-auction-azura",
+    storageBucket:     "ipl-auction-azura.firebasestorage.app",
+    messagingSenderId: "550017431546",
+    appId:             "1:550017431546:web:b0889476e9269b01c69643"
+  };
+  // ────────────────────────────────
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function show(s){
+    ['Main','Admin','Team'].forEach(x=>document.getElementById('section'+x).style.display=x.toLowerCase()===s?'block':'none');
+    document.getElementById('adminErr').textContent='';document.getElementById('teamErr').textContent='';
+  }
+  function adminLogin(){
+    const p=document.getElementById('adminPass').value.trim();
+    if(p===ADMIN_PASSWORD){localStorage.setItem('iplRole','admin');localStorage.removeItem('iplTeamId');window.location.href='admin.html';}
+    else document.getElementById('adminErr').textContent='❌ Incorrect password.';
+  }
+  async function teamLogin(){
+    const teamId=document.getElementById('teamSelect').value;
+    const pass=document.getElementById('teamPass').value.trim();
+    const team=TEAMS_DATA.find(t=>t.id===teamId);
+    const errEl=document.getElementById('teamErr');errEl.textContent='';
+    if(!team){errEl.textContent='❌ Please select a team.';return}
+    if(pass!==team.password){errEl.textContent='❌ Wrong password for '+team.name;return}
+    const btn=document.getElementById('loginBtn'),hint=document.getElementById('loadingHint');
+    btn.disabled=true;hint.style.display='block';
+    try{
+      const snap=await db.ref(`activeSessions/${teamId}`).once('value');
+      const sess=snap.val();
+      if(sess&&sess.active){
+        btn.disabled=false;hint.style.display='none';
+        const mins=sess.loginTime?Math.round((Date.now()-sess.loginTime)/60000):'?';
+        document.getElementById('alreadyMsg').innerHTML=`<span class="team-highlight">${team.name}</span> is already logged in (joined ${mins} min ago).<br><br>Please login with <strong>your own team's</strong> credentials.`;
+        document.getElementById('alreadyModal').classList.add('open');return;
+      }
+    }catch(e){console.warn('Session check failed:',e)}
+    await db.ref(`activeSessions/${teamId}`).set({active:true,loginTime:Date.now(),teamName:team.name});
+    db.ref(`activeSessions/${teamId}`).onDisconnect().set({active:false,loginTime:null});
+    btn.disabled=false;hint.style.display='none';
+    localStorage.setItem('iplRole','team');localStorage.setItem('iplTeamId',team.id);
+    localStorage.setItem('iplTeamName',team.name);localStorage.setItem('iplTeamColor',team.primary);
+    window.location.href='bidder.html';
+  }
+</script>
+</body>
+</html>
