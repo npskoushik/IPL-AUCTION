@@ -1,0 +1,16 @@
+{
+  "name": "ipl-auction",
+  "version": "1.0.0",
+  "description": "IPL Auction 2026 - College Edition",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve .",
+    "test": "echo \"No tests configured\""
+  },
+  "keywords": ["ipl", "auction", "cricket"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^1.3.1"
+  }
+}
